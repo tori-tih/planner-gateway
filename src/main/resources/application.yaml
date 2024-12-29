@@ -23,8 +23,8 @@ spring:
             - RewritePath=/api/planner/(?<segment>.*), /${segment}
           order: 2
 
-        - id: nodejs
-          uri: lb://nodejs
+        - id: a-node-service
+          uri: lb://a-node-service
           predicates:
             - Path=/api/nodejs/**
           filters:
