@@ -1,0 +1,96 @@
+spring:
+  application:
+    name: planner-gateway
+  cloud:
+    loadbalancer:
+      retry:
+        enabled: true
+    gateway:
+      routes:
+        - id: planner-auth
+          uri: lb://planner-auth
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /${segment}
+          order: 1
+
+        - id: planner
+          uri: lb://planner
+          predicates:
+            - Path=/api/planner/**
+          filters:
+            - RewritePath=/api/planner/(?<segment>.*), /${segment}
+          order: 2
+
+        - id: nodejs
+          uri: lb://nodejs
+          predicates:
+            - Path=/api/nodejs/**
+          filters:
+            - RewritePath=/api/nodejs/(?<segment>.*), /${segment}
+          order: 3
+
+        # ??????????? ???????
+        - id: static_resources
+          uri: forward:/static
+          predicates:
+            - Path=/static/**
+          order: 4
+
+        # ??????? ??? SPA (?????? ???? ?????????)
+        - id: spa_fallback
+          uri: forward:/index.html
+          predicates:
+            - Path=/**
+          order: 5
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10s
+        max-header-size: 2MB
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      metrics:
+        enabled: true
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+server:
+  port: 8080
+  ssl:
+    enabled: false
+  max-http-request-header-size: 2MB
+  netty:
+    max-initial-line-length: 16KB
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    preferIpAddress: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    reactor.netty: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
